@@ -1,3 +1,4 @@
+
 import { HierarchyLevel } from "./types";
 
 export const QUOTE_GENRES = [
@@ -49,3 +50,19 @@ export const MOCK_QUOTES = [
     timestamp: Date.now()
   }
 ];
+
+export const HOLIDAYS: Record<string, string> = {
+  "01-01": "New Year's Day",
+  "02-14": "Valentine's Day",
+  "04-22": "Earth Day",
+  "10-31": "Halloween",
+  "11-01": "All Saints' Day",
+  "12-25": "Christmas",
+  "12-31": "New Year's Eve"
+  // Add more fixed date holidays as needed
+};
+
+export const MILESTONES = {
+  JOURNALS_REQUIRED_FOR_REWARD: 3,
+  SAVES_REQUIRED_FOR_REWARD: 5
+};

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Home } from './views/Home';
@@ -5,7 +6,8 @@ import { Explore } from './views/Explore';
 import { Journey } from './views/Journey';
 import { Favorites } from './views/Favorites';
 import { Onboarding } from './components/Onboarding';
-import { HierarchyLevel, Quote } from './types';
+import { HierarchyLevel, Quote, UserProgress } from './types';
+import { MILESTONES } from './constants';
 
 type View = 'home' | 'explore' | 'journey' | 'favorites';
 
@@ -15,6 +17,12 @@ const App: React.FC = () => {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<Quote[]>([]);
   const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [userProgress, setUserProgress] = useState<UserProgress>({
+    quotesSaved: 0,
+    journalsWritten: 0,
+    rewardsAvailable: 0,
+    totalRewardsClaimed: 0
+  });
   
   // State for handling "Journal about this quote"
   const [journalQuote, setJournalQuote] = useState<Quote | null>(null);
@@ -32,6 +40,9 @@ const App: React.FC = () => {
 
     const onboarded = localStorage.getItem('mindset_onboarded');
     setHasOnboarded(!!onboarded);
+
+    const savedProgress = localStorage.getItem('mindset_progress');
+    if (savedProgress) setUserProgress(JSON.parse(savedProgress));
   }, []);
 
   // Persistence Handlers
@@ -49,22 +60,79 @@ const App: React.FC = () => {
     localStorage.setItem('mindset_genres', JSON.stringify(newGenres));
   };
 
+  // Gamification Logic
+  const checkMilestones = (updatedProgress: UserProgress) => {
+    let rewardsToAdd = 0;
+
+    // Logic: Every X journals = 1 reward
+    // This is a simple counter check. A more robust system would track "progress towards next" explicitly.
+    // Here we just check if current count % threshold == 0.
+    
+    if (updatedProgress.journalsWritten > 0 && updatedProgress.journalsWritten % MILESTONES.JOURNALS_REQUIRED_FOR_REWARD === 0) {
+       rewardsToAdd++;
+    }
+
+    if (updatedProgress.quotesSaved > 0 && updatedProgress.quotesSaved % MILESTONES.SAVES_REQUIRED_FOR_REWARD === 0) {
+      rewardsToAdd++;
+    }
+
+    if (rewardsToAdd > 0) {
+      const newProgress = {
+        ...updatedProgress,
+        rewardsAvailable: updatedProgress.rewardsAvailable + rewardsToAdd
+      };
+      setUserProgress(newProgress);
+      localStorage.setItem('mindset_progress', JSON.stringify(newProgress));
+      // Could trigger a toast notification here
+      console.log("Reward Unlocked!");
+    }
+  };
+
   const handleToggleFavorite = (quote: Quote) => {
     const exists = favorites.some(f => f.text === quote.text);
     let newFavs;
+    let updatedProgress = { ...userProgress };
+
     if (exists) {
       newFavs = favorites.filter(f => f.text !== quote.text);
     } else {
       newFavs = [...favorites, quote];
+      // Increment progress for saving
+      updatedProgress.quotesSaved += 1;
+      setUserProgress(updatedProgress);
+      localStorage.setItem('mindset_progress', JSON.stringify(updatedProgress));
+      checkMilestones(updatedProgress);
     }
     setFavorites(newFavs);
     localStorage.setItem('mindset_favorites', JSON.stringify(newFavs));
   };
 
+  const handleEntrySaved = () => {
+    const updatedProgress = {
+      ...userProgress,
+      journalsWritten: userProgress.journalsWritten + 1
+    };
+    setUserProgress(updatedProgress);
+    localStorage.setItem('mindset_progress', JSON.stringify(updatedProgress));
+    checkMilestones(updatedProgress);
+  };
+
+  const handleRewardClaimed = () => {
+    if (userProgress.rewardsAvailable > 0) {
+      const updated = {
+        ...userProgress,
+        rewardsAvailable: userProgress.rewardsAvailable - 1,
+        totalRewardsClaimed: userProgress.totalRewardsClaimed + 1
+      };
+      setUserProgress(updated);
+      localStorage.setItem('mindset_progress', JSON.stringify(updated));
+    }
+  };
+
   const handleCompleteOnboarding = (level: HierarchyLevel, genres: string[]) => {
     handleSetLevel(level);
     setSelectedGenres(genres);
-    localStorage.setItem('mindset_genres', JSON.stringify(genres)); // Ensure saved
+    localStorage.setItem('mindset_genres', JSON.stringify(genres)); 
     setHasOnboarded(true);
     localStorage.setItem('mindset_onboarded', 'true');
   };
@@ -72,10 +140,8 @@ const App: React.FC = () => {
   const handleJournalAboutQuote = (quote: Quote) => {
     setJournalQuote(quote);
     setCurrentView('journey');
-    // If user isn't already favorite, maybe auto-favorite? 
-    // User requirement didn't specify, but let's just open the journal.
     if (!favorites.some(f => f.text === quote.text)) {
-      handleToggleFavorite(quote); // Auto-favorite for convenience when journaling
+      handleToggleFavorite(quote); 
     }
   };
 
@@ -94,6 +160,8 @@ const App: React.FC = () => {
             onToggleFavorite={handleToggleFavorite}
             onJournal={handleJournalAboutQuote}
             favorites={favorites}
+            userProgress={userProgress}
+            onRewardClaimed={handleRewardClaimed}
           />
         );
       case 'explore':
@@ -109,6 +177,7 @@ const App: React.FC = () => {
           <Journey 
             initialQuote={journalQuote}
             onClearInitialQuote={() => setJournalQuote(null)}
+            onEntrySaved={handleEntrySaved}
           />
         );
       case 'favorites':

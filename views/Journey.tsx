@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
-import { JournalEntry, Quote, SortOption, FilterOption, HIERARCHY_ORDER, HierarchyLevel } from '../types';
+import { JournalEntry, Quote, SortOption, FilterOption } from '../types';
 import { QUOTE_GENRES } from '../constants';
-import { Plus, Trash2, Save, X, Filter, ArrowUpDown, Quote as QuoteIcon, Tag } from 'lucide-react';
+import { Plus, Trash2, Save, X, Filter, ArrowUpDown, Quote as QuoteIcon, Tag, Search } from 'lucide-react';
 
 interface Props {
   initialQuote?: Quote | null;
   onClearInitialQuote: () => void;
+  onEntrySaved?: () => void; // For gamification
 }
 
-export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) => {
+export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote, onEntrySaved }) => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -25,6 +27,7 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('mindset_journal');
@@ -74,7 +77,7 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
       content: currentContent,
       timestamp: editId ? entries.find(e => e.id === editId)?.timestamp || timestamp : timestamp,
       linkedQuote: currentQuote || undefined,
-      tags: selectedTags, // Persist existing tags if any
+      tags: selectedTags, 
     };
 
     let updated;
@@ -87,8 +90,11 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
     setEntries(updated);
     localStorage.setItem('mindset_journal', JSON.stringify(updated));
     
-    // If new entry or we want to re-tag, show modal. 
-    // For simplicity, always show tagging on save if it's open.
+    // Notify parent for gamification if it's a NEW entry
+    if (!editId && onEntrySaved) {
+      onEntrySaved();
+    }
+
     setSavedEntryId(entryId);
     setShowPostSaveModal(true);
   };
@@ -113,6 +119,15 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
   const getSortedAndFilteredEntries = () => {
     let result = [...entries];
 
+    // Search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(e => 
+        e.title.toLowerCase().includes(q) || 
+        e.content.toLowerCase().includes(q)
+      );
+    }
+
     // Filter
     if (filterBy !== 'all') {
       result = result.filter(e => e.tags?.includes(filterBy));
@@ -134,9 +149,9 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
   // --- EDIT MODE ---
   if (isEditing) {
     return (
-      <div className="fixed inset-0 z-50 bg-mindset-bg flex flex-col h-full animate-in slide-in-from-bottom-10 duration-300">
+      <div className="fixed inset-0 z-[60] bg-mindset-bg flex flex-col h-full animate-in slide-in-from-bottom-10 duration-300">
         {/* Editor Header */}
-        <div className="flex justify-between items-center p-4 border-b border-white/5 bg-mindset-bg">
+        <div className="flex justify-between items-center p-4 border-b border-white/5 bg-mindset-bg shrink-0">
           <button onClick={() => setIsEditing(false)} className="p-2 hover:bg-white/5 rounded-full text-mindset-muted transition-colors">
             <X size={24} />
           </button>
@@ -146,18 +161,18 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
           </button>
         </div>
 
-        {/* Editor Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* Editor Content - Uses Flexbox to fill space without overflowing */}
+        <div className="flex-1 flex flex-col p-6 overflow-hidden">
           <input
             type="text"
             placeholder="Title..."
             value={currentTitle}
             onChange={(e) => setCurrentTitle(e.target.value)}
-            className="w-full bg-transparent text-2xl font-bold text-white placeholder-mindset-muted/40 border-none focus:ring-0 p-0 mb-6"
+            className="w-full bg-transparent text-2xl font-bold text-white placeholder-mindset-muted/40 border-none focus:ring-0 p-0 mb-6 shrink-0"
           />
 
           {currentQuote && (
-            <div className="bg-mindset-card/50 border border-mindset-accent/20 p-4 rounded-xl mb-6 flex gap-3 items-start">
+            <div className="bg-mindset-card/50 border border-mindset-accent/20 p-4 rounded-xl mb-6 flex gap-3 items-start shrink-0">
                <QuoteIcon className="text-mindset-accent shrink-0 mt-1" size={18} />
                <div>
                  <p className="text-white italic font-light">"{currentQuote.text}"</p>
@@ -173,7 +188,7 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
             placeholder="Start writing..."
             value={currentContent}
             onChange={(e) => setCurrentContent(e.target.value)}
-            className="w-full h-[calc(100%-150px)] bg-transparent text-lg text-mindset-text/90 placeholder-mindset-muted/20 resize-none border-none focus:ring-0 p-0 leading-relaxed"
+            className="w-full flex-1 bg-transparent text-lg text-mindset-text/90 placeholder-mindset-muted/20 resize-none border-none focus:ring-0 p-0 leading-relaxed outline-none"
             autoFocus
           />
         </div>
@@ -221,8 +236,8 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
 
   // --- LIST MODE ---
   return (
-    <div className="p-4 pb-24 min-h-full">
-      <div className="flex justify-between items-end mb-6">
+    <div className="p-4 pb-24 min-h-full flex flex-col">
+      <div className="flex justify-between items-end mb-6 shrink-0">
         <div>
           <h2 className="text-3xl font-bold text-white">Journal</h2>
           <p className="text-mindset-muted text-sm mt-1">{entries.length} entries</p>
@@ -245,7 +260,20 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote }) 
 
       {/* Filters Drawer */}
       {showFilters && (
-        <div className="mb-6 p-4 bg-mindset-card rounded-xl border border-white/5 animate-in slide-in-from-top-2">
+        <div className="mb-6 p-4 bg-mindset-card rounded-xl border border-white/5 animate-in slide-in-from-top-2 shrink-0">
+           
+           {/* Search Bar */}
+           <div className="relative mb-4">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-mindset-muted" size={16} />
+             <input 
+                type="text" 
+                placeholder="Search journals..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 rounded-lg pl-10 pr-4 py-2 text-sm text-white border-none focus:ring-1 focus:ring-mindset-accent placeholder-mindset-muted/50"
+             />
+           </div>
+
            <div className="flex justify-between items-center mb-3">
               <span className="text-xs font-bold text-mindset-muted uppercase tracking-wider">Sort By</span>
               <button 
