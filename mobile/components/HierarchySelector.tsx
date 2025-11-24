@@ -14,7 +14,7 @@ export const HierarchySelector: React.FC<Props> = ({ currentLevel, onSelect }) =
   const scrollRef = useRef<ScrollView>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
-  const [itemLayouts, setItemLayouts] = useState<{[key: string]: {x: number, width: number}}>({});
+  const [itemLayouts, setItemLayouts] = useState<{ [key: string]: { x: number, width: number } }>({});
 
   const handleScroll = (event: any) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -100,21 +100,28 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 48,
+    top: '50%',
+    marginTop: -16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1a2e26',
     zIndex: 10,
     justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   indicatorLeft: {
-    left: 0,
-    // Linear gradient simulation or just solid background with opacity
-    backgroundColor: 'rgba(10, 47, 31, 0.8)', 
+    left: 4,
   },
   indicatorRight: {
-    right: 0,
-    alignItems: 'flex-end',
-    backgroundColor: 'rgba(10, 47, 31, 0.8)',
+    right: 4,
   },
   button: {
     paddingHorizontal: 20,

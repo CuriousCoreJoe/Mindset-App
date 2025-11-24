@@ -57,6 +57,7 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote, on
         setCurrentContent('');
         setCurrentQuote(null);
         setSelectedTags([]);
+        setShowPostSaveModal(false);
         setIsEditing(true);
     };
 
@@ -66,6 +67,7 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote, on
         setCurrentContent(entry.content);
         setCurrentQuote(entry.linkedQuote || null);
         setSelectedTags(entry.tags || []);
+        setShowPostSaveModal(false);
         setIsEditing(true);
     };
 
@@ -172,94 +174,89 @@ export const Journey: React.FC<Props> = ({ initialQuote, onClearInitialQuote, on
             onRequestClose={() => setIsEditing(false)}
         >
             <View style={styles.editorContainer}>
-                {/* Editor Header */}
-                <View style={styles.editorHeader}>
-                    <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.iconButton}>
-                        <X size={24} color="#94a3b8" />
-                    </TouchableOpacity>
-                    <Text style={styles.editorTitle}>{editId ? 'Edit Entry' : 'New Entry'}</Text>
-                    <TouchableOpacity onPress={saveEntry} style={styles.saveButton}>
-                        <Save size={20} color="#020d08" />
-                    </TouchableOpacity>
-                </View>
+                {showPostSaveModal ? (
+                    <View style={styles.tagModalContainer}>
+                        <Text style={styles.tagModalTitle}>Tag your memory</Text>
+                        <Text style={styles.tagModalSubtitle}>Select topics to categorize this entry.</Text>
 
-                {/* Editor Content */}
-                <ScrollView style={styles.editorContent} contentContainerStyle={{ paddingBottom: 100 }}>
-                    <TextInput
-                        placeholder="Title..."
-                        placeholderTextColor="rgba(148, 163, 184, 0.4)"
-                        value={currentTitle}
-                        onChangeText={setCurrentTitle}
-                        style={styles.titleInput}
-                    />
+                        <View style={styles.tagsContainer}>
+                            {QUOTE_GENRES.slice(0, 15).map(genre => (
+                                <TouchableOpacity
+                                    key={genre}
+                                    onPress={() => {
+                                        if (selectedTags.includes(genre)) setSelectedTags(selectedTags.filter(t => t !== genre));
+                                        else setSelectedTags([...selectedTags, genre]);
+                                    }}
+                                    style={[
+                                        styles.tagChip,
+                                        selectedTags.includes(genre) ? styles.tagChipSelected : styles.tagChipDefault
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.tagChipText,
+                                        selectedTags.includes(genre) ? styles.tagChipTextSelected : styles.tagChipTextDefault
+                                    ]}>{genre}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
 
-                    {currentQuote && (
-                        <View style={styles.quotePreview}>
-                            <QuoteIcon size={18} color="#bfef00" style={{ marginTop: 4 }} />
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.quotePreviewText}>"{currentQuote.text}"</Text>
-                                <Text style={styles.quotePreviewAuthor}>— {currentQuote.author}</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setCurrentQuote(null)} style={{ padding: 4 }}>
-                                <X size={16} color="rgba(148, 163, 184, 0.5)" />
+                        <View style={styles.tagModalActions}>
+                            <TouchableOpacity onPress={() => updateTags(selectedTags)} style={styles.tagDoneButton}>
+                                <Text style={styles.tagDoneText}>Done</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => updateTags(selectedTags)} style={styles.tagSkipButton}>
+                                <Text style={styles.tagSkipText}>Skip</Text>
                             </TouchableOpacity>
                         </View>
-                    )}
-
-                    <TextInput
-                        placeholder="Start writing..."
-                        placeholderTextColor="rgba(148, 163, 184, 0.2)"
-                        value={currentContent}
-                        onChangeText={setCurrentContent}
-                        multiline
-                        style={styles.contentInput}
-                        textAlignVertical="top"
-                    />
-                </ScrollView>
-
-                {/* Post-Save Tagging Modal */}
-                <Modal
-                    visible={showPostSaveModal}
-                    transparent={true}
-                    animationType="fade"
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.tagModal}>
-                            <Text style={styles.tagModalTitle}>Tag your memory</Text>
-                            <Text style={styles.tagModalSubtitle}>Select topics to categorize this entry.</Text>
-
-                            <View style={styles.tagsContainer}>
-                                {QUOTE_GENRES.slice(0, 15).map(genre => (
-                                    <TouchableOpacity
-                                        key={genre}
-                                        onPress={() => {
-                                            if (selectedTags.includes(genre)) setSelectedTags(selectedTags.filter(t => t !== genre));
-                                            else setSelectedTags([...selectedTags, genre]);
-                                        }}
-                                        style={[
-                                            styles.tagChip,
-                                            selectedTags.includes(genre) ? styles.tagChipSelected : styles.tagChipDefault
-                                        ]}
-                                    >
-                                        <Text style={[
-                                            styles.tagChipText,
-                                            selectedTags.includes(genre) ? styles.tagChipTextSelected : styles.tagChipTextDefault
-                                        ]}>{genre}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <View style={styles.tagModalActions}>
-                                <TouchableOpacity onPress={() => updateTags(selectedTags)} style={styles.tagDoneButton}>
-                                    <Text style={styles.tagDoneText}>Done</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => updateTags(selectedTags)} style={styles.tagSkipButton}>
-                                    <Text style={styles.tagSkipText}>Skip</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
                     </View>
-                </Modal>
+                ) : (
+                    <>
+                        {/* Editor Header */}
+                        <View style={styles.editorHeader}>
+                            <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.iconButton}>
+                                <X size={24} color="#94a3b8" />
+                            </TouchableOpacity>
+                            <Text style={styles.editorTitle}>{editId ? 'Edit Entry' : 'New Entry'}</Text>
+                            <TouchableOpacity onPress={saveEntry} style={styles.saveButton}>
+                                <Save size={20} color="#020d08" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Editor Content */}
+                        <ScrollView style={styles.editorContent} contentContainerStyle={{ paddingBottom: 100 }}>
+                            <TextInput
+                                placeholder="Title..."
+                                placeholderTextColor="rgba(148, 163, 184, 0.4)"
+                                value={currentTitle}
+                                onChangeText={setCurrentTitle}
+                                style={styles.titleInput}
+                            />
+
+                            {currentQuote && (
+                                <View style={styles.quotePreview}>
+                                    <QuoteIcon size={18} color="#bfef00" style={{ marginTop: 4 }} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.quotePreviewText}>"{currentQuote.text}"</Text>
+                                        <Text style={styles.quotePreviewAuthor}>— {currentQuote.author}</Text>
+                                    </View>
+                                    <TouchableOpacity onPress={() => setCurrentQuote(null)} style={{ padding: 4 }}>
+                                        <X size={16} color="rgba(148, 163, 184, 0.5)" />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            <TextInput
+                                placeholder="Start writing..."
+                                placeholderTextColor="rgba(148, 163, 184, 0.2)"
+                                value={currentContent}
+                                onChangeText={setCurrentContent}
+                                multiline
+                                style={styles.contentInput}
+                                textAlignVertical="top"
+                            />
+                        </ScrollView>
+                    </>
+                )}
             </View>
         </Modal>
     );
@@ -660,43 +657,34 @@ const styles = StyleSheet.create({
     },
 
     // Tag Modal
-    modalOverlay: {
+    tagModalContainer: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
         justifyContent: 'center',
-        alignItems: 'center',
         padding: 24,
-    },
-    tagModal: {
-        backgroundColor: '#1a2e26',
-        borderRadius: 16,
-        padding: 24,
-        width: '100%',
-        maxWidth: 380,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     tagModalTitle: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#ffffff',
         marginBottom: 8,
+        textAlign: 'center',
     },
     tagModalSubtitle: {
-        fontSize: 14,
+        fontSize: 16,
         color: '#94a3b8',
-        marginBottom: 16,
+        marginBottom: 32,
+        textAlign: 'center',
     },
     tagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
-        maxHeight: 240,
-        marginBottom: 24,
+        gap: 12,
+        justifyContent: 'center',
+        marginBottom: 40,
     },
     tagChip: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         borderRadius: 9999,
         borderWidth: 1,
     },
@@ -708,36 +696,37 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     tagChipText: {
-        fontSize: 12,
+        fontSize: 14,
     },
     tagChipTextSelected: {
         color: '#020d08',
+        fontWeight: '600',
     },
     tagChipTextDefault: {
         color: '#94a3b8',
     },
     tagModalActions: {
-        flexDirection: 'row',
-        gap: 12,
+        flexDirection: 'column',
+        gap: 16,
     },
     tagDoneButton: {
-        flex: 1,
         backgroundColor: '#bfef00',
-        paddingVertical: 12,
-        borderRadius: 12,
+        paddingVertical: 16,
+        borderRadius: 16,
         alignItems: 'center',
     },
     tagDoneText: {
         color: '#020d08',
         fontWeight: 'bold',
+        fontSize: 16,
     },
     tagSkipButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 16,
         alignItems: 'center',
     },
     tagSkipText: {
         color: '#94a3b8',
         fontWeight: '500',
+        fontSize: 16,
     },
 });
